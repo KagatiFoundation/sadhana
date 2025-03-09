@@ -2,3 +2,4 @@ target/
 spy-db/
 go-expr/
 assets/
+.DS_Store

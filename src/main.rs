@@ -1,16 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
-use tokio::{task, time::error};
+use db::Ctx;
+use search::words::{best_ngram_match, filter_stop_words, finalize_word_list};
+use tokio::task;
 
 pub mod search;
 pub mod http_net;
 pub mod url;
-
-#[derive(Debug)]
-struct HtmlPage {
-    pub title: String,
-    pub url: String
-}
+pub mod crawler;
+pub mod tfidf;
+pub mod html;
+pub mod db;
 
 fn parse_query_params(url: &str) -> HashMap<String, String> {
     let mut params = HashMap::new();
@@ -28,6 +28,8 @@ fn parse_query_params(url: &str) -> HashMap<String, String> {
 
 fn server_search(db: Arc<rocksdb::DB>) -> Result<(), rocksdb::Error> {
     let server: tiny_http::Server = http_net::start_local_server(5000);
+    println!("SERVING...");
+
     for request in server.incoming_requests() {
         println!("NEW REQUEST");
 
@@ -61,28 +63,55 @@ fn server_search(db: Arc<rocksdb::DB>) -> Result<(), rocksdb::Error> {
 
             request.respond(response).unwrap();
         } else {
-            let error_response = "Not Found";
-            let mut response = tiny_http::Response::from_string(error_response);
-            for header in &cors_headers {
-                response.add_header(header.clone());
+            let similar_keys: Vec<String> = Ctx::get_partially_matching_keys(&db, search_query);
+            let best_match: Option<String> = best_ngram_match(search_query, &similar_keys);
+
+            if let Some(a_match) = best_match {
+                if let Some(db_match) = db.get(a_match)? {
+                    let response = String::from_utf8_lossy(&db_match);
+                    let mut response = tiny_http::Response::from_string(response);
+                    for header in &cors_headers {
+                        response.add_header(header.clone());
+                    }
+
+                    request.respond(response).unwrap();
+                }
             }
-            request.respond(response).unwrap();
+            else {
+                let error_response = "Not Found";
+                let mut response = tiny_http::Response::from_string(error_response);
+                for header in &cors_headers {
+                    response.add_header(header.clone());
+                }
+                request.respond(response).unwrap();
+            }
         }
     }
-
-    println!("SERVING...");
     Ok(())
 }
 
 async fn index_search(db: Arc<rocksdb::DB>) -> Result<(), Box<dyn std::error::Error>> {
-    let resp: String = reqwest::get("https://stackoverflow.com/questions/tagged/python?tab=Votes")
-        .await?
-        .text()
-        .await?;
+    let seend_index: &str = "https://www.tutorialspoint.com/python/index.htm";
+
+    // set up custom headers (User-Agent is important for avoiding bot detection)
+    let mut reqw_headers: reqwest::header::HeaderMap = reqwest::header::HeaderMap::new();
+    reqw_headers.insert(
+        reqwest::header::USER_AGENT, 
+        reqwest::header::HeaderValue::from_static(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+        )
+    );
+
+    let req_client: reqwest::Client = reqwest::Client::new();
+    let resp: reqwest::Response = req_client.get(seend_index).headers(reqw_headers).send().await?;
     
+    if !resp.status().is_success() {
+        panic!("Failed to make a request!");
+    }
+
     let mut tasks: Vec<task::JoinHandle<()>> = vec![];
 
-    let document: scraper::Html = scraper::Html::parse_document(&resp);
+    let document: scraper::Html = scraper::Html::parse_document(&resp.text().await?);
     let selector: scraper::Selector = scraper::Selector::parse("a").unwrap();
     for element in document.select(&selector) {
         if let Some(href_content) = element.attr("href") {
@@ -108,34 +137,18 @@ async fn index_search(db: Arc<rocksdb::DB>) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = std::env::args().collect();
-    println!("{:?}", args);
-    return Ok(());
-
-    // Setting up a database.
-    // Database is used for indexing.
-    let db_path: &str = "spy-db";
-    
-    let mut opts = rocksdb::Options::default();
-    opts.create_if_missing(true);
-
-    let db = Arc::new(rocksdb::DB::open_default(db_path).expect("Failed!!!"));
-    // index_search(db).await?;
-    server_search(db)?;
-    Ok(())
-}
-
-fn create_page_index(db: &rocksdb::DB, page: &HtmlPage) -> Result<i32, rocksdb::Error> {
-    let splited_title: Vec<&str> = page.title.split(" ").collect::<Vec<&str>>();
-    let non_stop_words_list: Vec<&str> = remove_stop_words(splited_title);
-    let processed_words: Vec<String> = lowercase_word_list(stem_words(non_stop_words_list));
+fn create_page_index(db: &rocksdb::DB, page: &html::HtmlDoc) -> Result<i32, rocksdb::Error> {
+    let splited_title: Vec<&str> = page.title.split(&['-', ' ', ':', '@'][..]).collect::<Vec<&str>>();
+    let non_stop_words_list: Vec<&str> = filter_stop_words(splited_title);
+    let processed_words: Vec<String> = finalize_word_list(search::stemming::stem(non_stop_words_list));
+    // println!("{:?}", processed_words);
+    // return Ok(0);
 
     let new_entry = serde_json::json!({
         "url": format!("{}", page.url),
         "title": format!("{}", page.title)
     });
+    println!("{:?}", new_entry);
 
     for word in processed_words {
         match db.get(&word) {
@@ -143,7 +156,9 @@ fn create_page_index(db: &rocksdb::DB, page: &HtmlPage) -> Result<i32, rocksdb::
                 let mut existing_data: Vec<serde_json::Value> = serde_json::from_slice(&existing_value).unwrap_or_else(|_| vec![]);
                 
                 if !existing_data.iter().any(|e| e["url"] == page.url) {
+                    println!("Data already exists: {:?}", existing_data);
                     existing_data.push(new_entry.clone());
+                    println!("modifying already exists: {:?}", existing_data);
                 }
 
                 let updated_value = serde_json::to_vec(&existing_data).unwrap();
@@ -158,53 +173,7 @@ fn create_page_index(db: &rocksdb::DB, page: &HtmlPage) -> Result<i32, rocksdb::
     Ok(0)
 }
 
-fn lowercase_word_list(word_list: Vec<&str>) -> Vec<String> {
-    word_list.iter().map(|word| word.to_lowercase()).collect::<Vec<String>>()
-}
-
-fn stem_words(word_list: Vec<&str>) -> Vec<&str> {
-    let mut result_words: Vec<&str> = vec![];
-
-    for word in word_list {
-        let stemmed_word = if word.ends_with("ing") {
-            word.strip_suffix("ing").unwrap()
-        } else if word.ends_with("ed") {
-            word.strip_suffix("ed").unwrap()
-        } else if word.ends_with("ly") {
-            word.strip_suffix("ly").unwrap()
-        } else {
-            word
-        };
-        result_words.push(stemmed_word);
-    }
-    result_words
-}
-
-
-fn remove_stop_words(word_list: Vec<&str>) -> Vec<&str> {
-    let mut result_words: Vec<&str> = vec![];
-    for word in word_list {
-        if is_a_stop_word(word) {
-            continue;
-        }
-        result_words.push(word);
-    }
-    result_words
-}
-
-fn is_a_stop_word(word: &str) -> bool {
-    is_word_a_linking_verb(word) || is_word_an_article(word)
-}
-
-fn is_word_a_linking_verb(word: &str) -> bool {
-    word == "is" || word == "was"
-}
-
-fn is_word_an_article(word: &str) -> bool {
-    word == "a" || word == "the" || word == "an"
-}
-
-async fn fetch_page_title(url: &str) -> Result<HtmlPage, reqwest::Error> {
+async fn fetch_page_title(url: &str) -> Result<html::HtmlDoc, reqwest::Error> {
     let resp: String = reqwest::get(url).await?.text().await?;
     let document: scraper::Html = scraper::Html::parse_document(&resp);
 
@@ -215,8 +184,42 @@ async fn fetch_page_title(url: &str) -> Result<HtmlPage, reqwest::Error> {
         .map(|t| t.inner_html())
         .unwrap_or_else(|| "No Title".to_string());
 
-    Ok(HtmlPage {
+    Ok(html::HtmlDoc {
         title,
         url: url.to_string(),
     })
+}
+
+async fn start_engine(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+// Setting up a database.
+    // Database is used for indexing.
+    let db_path: &str = "spy-db";
+    
+    let mut opts = rocksdb::Options::default();
+    opts.create_if_missing(true);
+
+    let db = Arc::new(rocksdb::DB::open_default(db_path).expect("Failed!!!"));
+
+    if let Some(action) = args.get(1) {
+        if action == "index" {
+            println!("Started indexing...");
+            index_search(db).await?;
+        } else {
+            server_search(db)?;
+        }
+    } else {
+        server_search(db)?;
+    }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    start_engine(&args).await
+
+    // let words = ["python", "best", "language", "world", "python", "programming", "best"];
+    // println!("{:?}", compute_tfidf_score(&words));
+
+    // Ok(())
 }
