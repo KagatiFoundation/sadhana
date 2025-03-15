@@ -8,6 +8,11 @@ case ${option} in
     -s)
     cargo run
     ;;
+    clean)
+    set -xe
+    rm -fr ./spy-db
+    redis-cli flushall
+    ;;
     *)
     echo "Usage: ./run.sh [-i|-s]"
     ;;
