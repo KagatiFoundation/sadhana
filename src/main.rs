@@ -1,5 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet}, hash::Hash, sync::Arc
+    collections::{HashMap, HashSet}, 
+    sync::Arc
 };
 
 use redis::Commands;
@@ -102,7 +103,7 @@ fn server_search(db: Arc<rocksdb::DB>) -> Result<(), rocksdb::Error> {
 
 async fn index_search(ctxx: &Arc<ctx::Ctx>) -> Result<(), Box<dyn std::error::Error>> {
     // let seed_main_domains = ["https://docs.python.org/3", "https://docs.oracle.com/javase/tutorial"];
-    let seed_index: &str = "https://docs.python.org/3";
+    let seed_index: &str = "https://docs.python.org/3/reference/compound_stmts.html";
 
     // set up custom headers (User-Agent is important for avoiding bot detection)
     let mut reqw_headers: reqwest::header::HeaderMap = reqwest::header::HeaderMap::new();
@@ -220,7 +221,6 @@ fn create_page_index(ctxx: &ctx::Ctx, page: &html::HtmlDoc) -> Result<i32, rocks
         match ctxx.rocks_con.get(word) {
             Ok(Some(existing_value)) => {
                 let mut existing_data: Vec<serde_json::Value> = serde_json::from_slice(&existing_value).unwrap_or_else(|_| vec![]);
-                println!("KEY: {}\nVALUE: {:?}\n\n", word, existing_data);
                 let mut incr_doc_count: bool = false;
                 
                 if !existing_data.iter().any(|e| e["url"] == page.url) {

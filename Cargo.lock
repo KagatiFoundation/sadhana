@@ -98,6 +98,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
+name = "bot"
+version = "0.1.0"
+dependencies = [
+ "context",
+ "redis",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -176,6 +184,14 @@ checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
  "memchr",
+]
+
+[[package]]
+name = "context"
+version = "0.1.0"
+dependencies = [
+ "redis",
+ "rocksdb",
 ]
 
 [[package]]
@@ -1435,6 +1451,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "search"
+version = "0.1.0"
+dependencies = [
+ "context",
+ "redis",
+ "rocksdb",
+ "wp",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1519,6 +1545,10 @@ dependencies = [
  "ryu",
  "serde",
 ]
+
+[[package]]
+name = "server"
+version = "0.1.0"
 
 [[package]]
 name = "servo_arc"
@@ -2151,6 +2181,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3268f3d866458b787f390cf61f4bbb563b922d091359f9608842999eaee3943c"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "wp"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]

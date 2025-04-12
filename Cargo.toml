@@ -3,6 +3,15 @@ name = "spy"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    "engine/wp",
+    "engine/search",
+    "engine/context",
+    "engine/bot",
+    "server"
+]
+
 [dependencies]
 tiny_http = "0.12.0"
 reqwest = { version = "0.12", features = ["json"] }
