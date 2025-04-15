@@ -1,26 +1,31 @@
-[package]
-name = "spy"
-version = "0.1.0"
-edition = "2021"
+# [package]
+# name = "spy"
+# version = "0.1.0"
+# edition = "2021"
+
+# [[bin]]
+# name = "server"
+# path = "./server/src/main.rs"
 
 [workspace]
 members = [
     "engine/wp",
     "engine/search",
     "engine/context",
-    "engine/bot",
+    "engine/crawler",
+    "engine/indexer",
     "server"
 ]
 
-[dependencies]
-tiny_http = "0.12.0"
-reqwest = { version = "0.12", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-scraper = "0.23.1"
-url = "2.5.4"
-rocksdb = "0.23.0"
-serde_json = "1.0.140"
-lazy_static = "1.5.0"
-regex = "1.11.1"
-html2text = "0.14.1"
-redis = "0.29.1"
+# [dependencies]
+# tiny_http = "0.12.0"
+# reqwest = { version = "0.12", features = ["json"] }
+# tokio = { version = "1", features = ["full"] }
+# scraper = "0.23.1"
+# url = "2.5.4"
+# rocksdb = "0.23.0"
+# serde_json = "1.0.140"
+# lazy_static = "1.5.0"
+# regex = "1.11.1"
+# html2text = "0.14.1"
+# redis = "0.29.1"

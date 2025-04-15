@@ -4,3 +4,4 @@ go-expr/
 assets/
 .DS_Store
 dump.rdb
+.fake

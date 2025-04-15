@@ -4,6 +4,7 @@ use redis::Commands;
 
 const _REDIS_INTERNAL_KEY_: &str = "internals";
 
+#[derive(Debug)]
 pub struct CTX {
     pub redis_con: Arc<redis::Client>,
     pub rocks_con: Arc<rocksdb::DB>

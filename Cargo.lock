@@ -98,14 +98,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
-name = "bot"
-version = "0.1.0"
-dependencies = [
- "context",
- "redis",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -209,6 +201,21 @@ name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
+
+[[package]]
+name = "crawler"
+version = "0.1.0"
+dependencies = [
+ "context",
+ "indexer",
+ "lazy_static",
+ "redis",
+ "reqwest",
+ "scraper",
+ "tiny_http",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "cssparser"
@@ -407,7 +414,7 @@ version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14dbbfd5c71d70241ecf9e6f13737f7b5ce823821063188d7e46c41d371eebd5"
 dependencies = [
- "unicode-width 0.1.14",
+ "unicode-width",
 ]
 
 [[package]]
@@ -469,19 +476,6 @@ name = "hashbrown"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
-
-[[package]]
-name = "html2text"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "257509a3123de619343b8cdbabc5ef8f9c2ed188a0332b273553f80e032546d9"
-dependencies = [
- "html5ever",
- "markup5ever",
- "tendril",
- "thiserror",
- "unicode-width 0.2.0",
-]
 
 [[package]]
 name = "html5ever"
@@ -750,6 +744,13 @@ checksum = "daca1df1c957320b2cf139ac61e7bd64fed304c5040df000a745aa1de3b4ef71"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "indexer"
+version = "0.1.0"
+dependencies = [
+ "context",
 ]
 
 [[package]]
@@ -1549,6 +1550,11 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
+dependencies = [
+ "crawler",
+ "indexer",
+ "tokio",
+]
 
 [[package]]
 name = "servo_arc"
@@ -1609,23 +1615,6 @@ checksum = "c970269d99b64e60ec3bd6ad27270092a5394c4e309314b18ae3fe575695fbe8"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "spy"
-version = "0.1.0"
-dependencies = [
- "html2text",
- "lazy_static",
- "redis",
- "regex",
- "reqwest",
- "rocksdb",
- "scraper",
- "serde_json",
- "tiny_http",
- "tokio",
- "url",
 ]
 
 [[package]]
@@ -1740,26 +1729,6 @@ dependencies = [
  "futf",
  "mac",
  "utf-8",
-]
-
-[[package]]
-name = "thiserror"
-version = "2.0.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "2.0.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1909,12 +1878,6 @@ name = "unicode-width"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
-
-[[package]]
-name = "unicode-width"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
 
 [[package]]
 name = "untrusted"

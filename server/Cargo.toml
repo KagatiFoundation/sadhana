@@ -6,3 +6,9 @@ edition = "2021"
 [[bin]]
 name = "server"
 path = "src/main.rs"
+
+[dependencies]
+crawler = { path = "../engine/crawler" }
+indexer = { path = "../engine/indexer" }
+
+tokio = { version = "1", features = ["full"] }
