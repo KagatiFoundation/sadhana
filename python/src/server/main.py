@@ -1,10 +1,12 @@
-if __name__ == "__main__":
-    from ..core.crawler.engine import *
-    crawl = Crawler(
-        CrawlerOpts(
-            max_depth=2,
-            seed_url="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-        )
-    )
+from ..core.crawler import *
+import asyncio
 
-    crawl.crawl()
+async def main():
+    opts = CrawlerOpts(max_depth=2, seed_url="https://example.com")
+    engine = Crawler(opts)
+    await engine.start_crawling()
+
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Shutdown...")
