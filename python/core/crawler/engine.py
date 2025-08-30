@@ -1,11 +1,13 @@
 from . import http_req
 from ..html.preprocess import *
 from ..indexer.indexer import *
+from ..db import SadhanaDB, SadhanaRedisMgr
 
 from dataclasses import dataclass
 from collections import deque
 import asyncio
 from typing import Set, Deque
+import redis
 from urllib.parse import urljoin, urlparse
 
 @dataclass
@@ -23,6 +25,15 @@ class Crawler:
         self.lock = asyncio.Lock()
 
         self.links_to_crawl.append(opts.seed_url)
+
+        # database
+        self.db_handle = SadhanaDB()
+
+        # redis client
+        self.redis_handle = SadhanaRedisMgr()
+
+        # indexer
+        self.indexer = Indexer(IndexerOpts(), self.redis_handle, self.db_handle)
 
 
     async def start_crawling(self):
@@ -42,10 +53,7 @@ class Crawler:
                 crawled_data = await crawl_task
                 
                 # index
-                idxr = Indexer(IndexerOpts(), crawled_data)
-                lemma = idxr.index()
-                print("Title lemma: ", lemma)
-
+                self.indexer.index(crawled_data, next_link)
                 self.prepare_links_for_next_batch(crawled_data, next_link)
 
             depth += 1

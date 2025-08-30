@@ -221,7 +221,6 @@ fn create_page_index(ctxx: &ctx::Ctx, page: &html::HtmlDoc) -> Result<i32, rocks
         match ctxx.rocks_con.get(word) {
             Ok(Some(existing_value)) => {
                 let mut existing_data: Vec<serde_json::Value> = serde_json::from_slice(&existing_value).unwrap_or_else(|_| vec![]);
-                let mut incr_doc_count: bool = false;
                 
                 if !existing_data.iter().any(|e| e["url"] == page.url) {
                     existing_data.push(new_entry.clone());
@@ -231,10 +230,6 @@ fn create_page_index(ctxx: &ctx::Ctx, page: &html::HtmlDoc) -> Result<i32, rocks
                     let updated_value: Vec<u8> = serde_json::to_vec(&existing_data).unwrap();
                     ctxx.rocks_con.put(word, updated_value)?;
 
-                    incr_doc_count = true;
-                }
-
-                if incr_doc_count {
                     _ = ctxx.incr_doc_count();
                 }
             }
