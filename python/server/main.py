@@ -1,4 +1,4 @@
-from ..core.crawler import *
+from core.crawler.engine import *
 import asyncio
 
 async def main():

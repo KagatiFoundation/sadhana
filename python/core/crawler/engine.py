@@ -1,5 +1,6 @@
 from . import http_req
 from ..html.preprocess import *
+from ..indexer.indexer import *
 
 from dataclasses import dataclass
 from collections import deque
@@ -20,6 +21,7 @@ class Crawler:
         self.visited: Set[str] = set()
         self.links_to_crawl: Deque[str] = deque()
         self.lock = asyncio.Lock()
+
         self.links_to_crawl.append(opts.seed_url)
 
 
@@ -38,7 +40,12 @@ class Crawler:
             for next_link in batch:
                 crawl_task = self.crawl_link(next_link)
                 crawled_data = await crawl_task
-                pre_indexing_data = self.prepare_data_for_indexing(crawled_data)
+                
+                # index
+                idxr = Indexer(IndexerOpts(), crawled_data)
+                lemma = idxr.index()
+                print("Title lemma: ", lemma)
+
                 self.prepare_links_for_next_batch(crawled_data, next_link)
 
             depth += 1
@@ -48,13 +55,8 @@ class Crawler:
         return await http_req.fetch_html(link)
 
 
-    async def prepare_data_for_indexing(self, data):
-        pass
-
-
     def prepare_links_for_next_batch(self, html: str, base_url):
         new_links = extract_links(html)[:10]
-        valid_urls = set()
         for link in new_links:
             abs_path = link if self.is_valid_url(link) else urljoin(base_url, link)
 
@@ -62,15 +64,12 @@ class Crawler:
                 continue
 
             if abs_path not in self.visited:
-                valid_urls.add(link)
-        
-        for u in valid_urls:
-            self.links_to_crawl.append(u)
+                self.links_to_crawl.append(abs_path)
 
 
     def is_valid_url(self, url: str) -> bool:
         components = urlparse(url)
-        return all([components.scheme, components.netloc])
+        return all([components.scheme != '', components.netloc != ''])
 
 
     def is_same_domain(self, url: str) -> bool:
