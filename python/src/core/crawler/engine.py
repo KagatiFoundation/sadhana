@@ -22,6 +22,7 @@ class Crawler:
         self.lock = asyncio.Lock()
         self.links_to_crawl.append(opts.seed_url)
 
+
     async def start_crawling(self):
         depth = 0
         while depth <= self.opts.max_depth:
@@ -42,11 +43,14 @@ class Crawler:
 
             depth += 1
 
+
     async def crawl_link(self, link: str):
         return await http_req.fetch_html(link)
 
+
     async def prepare_data_for_indexing(self, data):
         pass
+
 
     def prepare_links_for_next_batch(self, html: str, base_url):
         new_links = extract_links(html)[:10]
@@ -62,10 +66,12 @@ class Crawler:
         
         for u in valid_urls:
             self.links_to_crawl.append(u)
-    
+
+
     def is_valid_url(self, url: str) -> bool:
         components = urlparse(url)
         return all([components.scheme, components.netloc])
+
 
     def is_same_domain(self, url: str) -> bool:
         return urlparse(self.opts.seed_url).netloc == urlparse(url).netloc
