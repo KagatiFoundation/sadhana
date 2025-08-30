@@ -1,6 +1,6 @@
 import pytest
-from src.core.crawler.engine import *
-from src.core.crawler.http_req import *
+from core.crawler.engine import *
+from core.crawler.http_req import *
 
 @pytest.mark.asyncio
 async def test_is_valid_url_and_same_domain():
@@ -30,7 +30,7 @@ async def test_crawl_link(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_prepare_links_for_next_batch(monkeypatch):
-    monkeypatch.setattr("src.core.html.preprocess.extract_links", lambda html: ["/page1", "/page2"])
+    monkeypatch.setattr("core.html.preprocess.extract_links", lambda html: ["/page1", "/page2"])
 
     opts = CrawlerOpts(seed_url="http://example.com")
     crawler = Crawler(opts)
