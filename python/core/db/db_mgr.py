@@ -1,4 +1,4 @@
-import sqlite3
+import mysql.connector as mcon
 from dataclasses import dataclass
 
 @dataclass
@@ -7,7 +7,7 @@ class DBEntity:
 
 
 @dataclass
-class RankEntity(DBEntity):
+class WordDocMapping(DBEntity):
     def __init__(self, word, url, title, score):
         self.word = word
         self.url = url
@@ -22,42 +22,27 @@ class SadhanaDB:
         else:
             self.db_name = "def-sadhana-db"
 
-        self.handle = sqlite3.connect(self.db_name)
-        # self.handle.execute(
-            # f'''
-            # CREATE DATABASE \'{self.db_name}\'
-            # '''
-        # )
-
-        self.handle.execute(
-            '''
-            create table if not exists `tbl_rank`(
-            `id` integer primary key autoincrement,
-            `word` varchar(128) not null,
-            `url` varchar(512) not null,
-            `title` varchar(1024) not null,
-            `score` float not null default 0
-            )
-            '''
-        ) 
+        self.handle = mcon.connect(
+            database="sadhana_main_db"
+        )
 
 
     def close(self):
         self.handle.close()
 
     
-    def insert_new_rank_item(self, entity: RankEntity):
+    def insert_new_word_doc_mapping(self, entity: WordDocMapping):
         self.handle.execute(
             f'''
-            insert into `tbl_rank`(word, url, title, score) 
-            values(\'{entity.url}\', \'{entity.title}\', `{entity.score}`)
+            insert into `tbl_word_doc_scoring`(word, doc_id, doc_title, score) 
+            values(\'{entity.word}\', \'{entity.url}\', \'{entity.title}\', `{entity.score}`);
             '''
         )
 
 
-    def get_rank_item(self, word: str):
+    def get_word_doc_mapping(self, word: str):
         return self.handle.execute(
             f'''
-            select * from `tbl_rank` where `word` = \'{word}\'
+            select * from `tbl_word_doc_scoring` where `word` = \'{word}\';
             '''
         )

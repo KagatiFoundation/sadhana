@@ -53,7 +53,7 @@ class Crawler:
                 crawled_data = await crawl_task
                 
                 # index
-                self.indexer.index(crawled_data, next_link)
+                await self.indexer.index(crawled_data, next_link)
                 self.prepare_links_for_next_batch(crawled_data, next_link)
 
             depth += 1
