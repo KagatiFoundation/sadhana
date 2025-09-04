@@ -1,10 +1,14 @@
-from core.crawler.engine import *
+from core.pipeline import EnginePipeline
 import asyncio
 
 async def main():
-    opts = CrawlerOpts(max_depth=1, seed_url="https://hello.com")
-    engine = Crawler(opts)
-    await engine.start_crawling()
+    pipeline = EnginePipeline()
+    await pipeline.process_batch(
+        [
+            'https://example.com',
+            'https://hello.com',
+        ]
+    )
 
 try:
     asyncio.run(main())

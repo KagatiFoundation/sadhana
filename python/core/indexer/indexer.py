@@ -21,6 +21,7 @@ class NoTitleFoundException(Exception):
 class IndexerOpts:
     pass
 
+
 class Indexer:
     def __init__(self, opts: IndexerOpts, redis_handle: redis.Redis, db_handle: SadhanaDB):
         self.opts = opts

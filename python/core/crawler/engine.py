@@ -1,7 +1,6 @@
 from . import http_req
 from ..html.preprocess import *
 from ..indexer.indexer import *
-from ..db import SadhanaDB, SadhanaRedisMgr
 
 from dataclasses import dataclass
 from collections import deque
@@ -23,19 +22,9 @@ class Crawler:
         self.links_to_crawl: Deque[str] = deque()
         self.lock = asyncio.Lock()
 
-        self.links_to_crawl.append(opts.seed_url)
 
-        # database
-        self.db_handle = SadhanaDB()
-
-        # redis client
-        self.redis_handle = SadhanaRedisMgr()
-
-        # indexer
-        self.indexer = Indexer(IndexerOpts(), self.redis_handle, self.db_handle)
-
-
-    async def start_crawling(self):
+    async def crawl(self):
+        self.links_to_crawl.append(self.opts.seed_url)
         depth = 0
         while depth <= self.opts.max_depth:
             batch = []
@@ -47,22 +36,25 @@ class Crawler:
                         self.visited.add(link)
                         batch.append(link)
 
-            for next_link in batch:
-                crawl_task = self.crawl_link(next_link)
-                crawled_data = await crawl_task
-                
-                # index
-                await self.indexer.index(crawled_data, next_link)
+            crawl_tasks = [self.crawl_link(link) for link in batch]
+            for c_task in asyncio.as_completed(crawl_tasks):
+                content = await c_task
+                crawled_data = content['data']
+                next_link = content['link']
                 self.prepare_links_for_next_batch(crawled_data, next_link)
+                yield crawled_data, next_link
 
             depth += 1
 
 
     async def crawl_link(self, link: str):
-        return await http_req.fetch_html(link)
+        return {
+            "data": await http_req.fetch_html(link),
+            "link": link
+        }
 
 
-    def prepare_links_for_next_batch(self, html: str, base_url):
+    def prepare_links_for_next_batch(self, html: str, base_url: str):
         new_links = extract_links(html)[:10]
         for link in new_links:
             abs_path = link if self.is_valid_url(link) else urljoin(base_url, link)
