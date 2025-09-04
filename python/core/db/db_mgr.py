@@ -84,10 +84,19 @@ class SadhanaDB:
             cur.close()
 
     
-    def insert_new_word_doc_mapping(self, entity: WordDocMapping):
-        self.handle.cursor().execute(
-            f'''
-            insert into `tbl_word_doc_scoring`(word, doc_id, doc_title, score) 
-            values(\'{entity.word}\', \'{entity.url}\', \'{entity.title}\', `{entity.score}`);
-            '''
-        )
+    def lookup_word_doc_mapping(self, word):
+        cur = self.handle.cursor()
+        try:
+            cur.execute(
+                f'''
+                SELECT words.word AS word, doc_urls.url AS url 
+                FROM tbl_words AS words 
+                JOIN tbl_word_doc AS word_doc ON word_doc.word_id = words.id 
+                JOIN tbl_doc_urls AS doc_urls ON word_doc.url_id = doc_urls.url_id 
+                WHERE words.word = '{word}';
+                '''
+            )
+            return cur.fetchall()
+        except mcon.Error as e:
+            print(cur.statement)
+            print(e)

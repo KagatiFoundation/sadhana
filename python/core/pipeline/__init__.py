@@ -18,5 +18,9 @@ class EnginePipeline:
             async for crawled_data, link in self.crawler.crawl():
                 await self.indexer.index(crawled_data, link)
 
+    
+    def __del__(self):
+        self.db_handle.close()
+
 
 __all__ = ['EnginePipeline']
