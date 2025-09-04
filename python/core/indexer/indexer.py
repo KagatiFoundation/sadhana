@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from collections import Counter
-import sys, redis
-import pprint
+import redis
 
 from ..text import *
 from ..db import SadhanaDB, SadhanaRedisMgr
@@ -29,7 +28,7 @@ class Indexer:
         self.doc_freq = {}
         self.inverted_index = {}
 
-        self.db_handle: dict[str, list[dict]] = {} # SadhanaDB()
+        self.db_handle = SadhanaDB()
         self.redis_handle: SadhanaRedisMgr = redis_handle
 
 
@@ -40,7 +39,8 @@ class Indexer:
         if raw_title is None:
             raise NoTitleFoundException("Title not present on the document.")
 
-        self.processed_title = clean_and_lemmatize(str(raw_title.string))
+        self.raw_title = str(raw_title.string)
+        self.processed_title = clean_and_lemmatize(self.raw_title)
 
         raw_content = ""
         for c_tag in CONTENT_TAGS:
@@ -60,29 +60,7 @@ class Indexer:
             raise Exception(f"Cannot index '{doc_id}': {e}")
 
         all_terms = self.processed_title + self.processed_content
-        self.update_term_freq(all_terms)
-        rank_metric = await self.compute_tfidf(all_terms)
-
-        for word in all_terms:
-            terms_score = rank_metric.get(word)
-            if terms_score is None:
-                print("Impossible happened...")
-                sys.exit(-1)
-
-            new_rank_item = {
-                "url": doc_id,
-                "title": " ".join(self.processed_title),
-                "score": terms_score
-            }
-
-            if word not in self.db_handle:
-                self.db_handle[word] = [new_rank_item]
-            else:
-                if not any(item['url'] == doc_id for item in self.db_handle[word]):
-                    self.db_handle[word].append(new_rank_item)
-
-        self.redis_handle.incr_internal_value('doc-count')
-        pprint.pprint(self.db_handle)
+        self.db_handle.batch_insert_new_rank_items(all_terms, doc_id, self.raw_title)
 
     
     async def compute_tfidf(self, terms: list[str]):

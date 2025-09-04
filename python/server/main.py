@@ -2,7 +2,7 @@ from core.crawler.engine import *
 import asyncio
 
 async def main():
-    opts = CrawlerOpts(max_depth=2, seed_url="https://example.com")
+    opts = CrawlerOpts(max_depth=1, seed_url="https://hello.com")
     engine = Crawler(opts)
     await engine.start_crawling()
 

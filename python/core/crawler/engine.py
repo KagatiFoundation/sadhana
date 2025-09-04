@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from collections import deque
 import asyncio
 from typing import Set, Deque
-import redis
 from urllib.parse import urljoin, urlparse
 
 @dataclass
